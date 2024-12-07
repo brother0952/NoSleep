@@ -36,7 +36,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>Martin-Berube-Food-Coffee-128.ico</ApplicationIcon>
+    <ApplicationIcon>valeo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -90,9 +90,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Martin-Berube-Food-Coffee-128.ico" />
-    <None Include="Resources\Pictogrammers-Material-Sleep.ico" />
-    <None Include="Resources\Martin-Berube-Food-Coffee-321.ico" />
+    <Content Include="valeo.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="IWshRuntimeLibrary">

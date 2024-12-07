@@ -24,6 +24,10 @@ namespace NoSleep
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
+                
+                // 更新配置文件结构，保留现有设置
+                ConfigManager.UpdateConfig();
+                
                 Application.Run(new TrayIcon());
             }
         }

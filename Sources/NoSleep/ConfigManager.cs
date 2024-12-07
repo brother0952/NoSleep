@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Forms;
+using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace NoSleep
 {
@@ -26,6 +29,63 @@ namespace NoSleep
 
         [DllImport("kernel32.dll")]
         private static extern bool WritePrivateProfileString(string section, string key, string value, string filePath);
+
+        /// <summary>
+        /// 初始化配置文件
+        /// </summary>
+        public static void InitializeConfig()
+        {
+            bool keepScreenOn = true;  // 默认值
+            bool autoStart = true;     // 默认值
+
+            // 如果已有配置文件，先读取现有设置
+            if (File.Exists(ConfigPath))
+            {
+                keepScreenOn = GetKeepScreenOn();
+                autoStart = GetAutoStart();
+                File.Delete(ConfigPath);  // 删除旧文件以创建新文件
+            }
+
+            // 创建或更新配置
+            WritePrivateProfileString("ScreenSaver", "Enabled", "true", ConfigPath);
+            WritePrivateProfileString("ScreenSaver", "Timeout", "120", ConfigPath);
+            WritePrivateProfileString("ScreenSaver", "SlideShowInterval", "10", ConfigPath);
+            WritePrivateProfileString("System", "AutoStart", autoStart.ToString().ToLower(), ConfigPath);
+            WritePrivateProfileString("System", "KeepScreenOn", keepScreenOn.ToString().ToLower(), ConfigPath);
+            
+            // 根据保存的设置设置自动启动
+            SetAutoStart(autoStart);
+        }
+
+        /// <summary>
+        /// 更新配置文件结构但保留现有设置
+        /// </summary>
+        public static void UpdateConfig()
+        {
+            if (File.Exists(ConfigPath))
+            {
+                // 读取现有设置
+                bool keepScreenOn = GetKeepScreenOn();
+                bool autoStart = GetAutoStart();
+                bool screenSaverEnabled = GetScreenSaverEnabled();
+                int screenSaverTimeout = GetScreenSaverTimeout();
+                int slideShowInterval = GetSlideShowInterval();
+
+                // 删除旧文件并创建新文件
+                File.Delete(ConfigPath);
+
+                // 写入所有设置
+                WritePrivateProfileString("ScreenSaver", "Enabled", screenSaverEnabled.ToString().ToLower(), ConfigPath);
+                WritePrivateProfileString("ScreenSaver", "Timeout", screenSaverTimeout.ToString(), ConfigPath);
+                WritePrivateProfileString("ScreenSaver", "SlideShowInterval", slideShowInterval.ToString(), ConfigPath);
+                WritePrivateProfileString("System", "AutoStart", autoStart.ToString().ToLower(), ConfigPath);
+                WritePrivateProfileString("System", "KeepScreenOn", keepScreenOn.ToString().ToLower(), ConfigPath);
+            }
+            else
+            {
+                InitializeConfig();
+            }
+        }
 
         /// <summary>
         /// 获取程序目录下第一个支持的图片文件路径
@@ -59,16 +119,38 @@ namespace NoSleep
         /// <summary>
         /// 获取屏保超时时间（秒）
         /// </summary>
-        /// <returns>超时时间，默认为300秒（5分钟）</returns>
+        /// <returns>超时时间，默认为120秒（2分钟）</returns>
         public static int GetScreenSaverTimeout()
         {
             StringBuilder result = new StringBuilder(255);
-            GetPrivateProfileString("ScreenSaver", "Timeout", "300", result, 255, ConfigPath);
+            GetPrivateProfileString("ScreenSaver", "Timeout", "120", result, 255, ConfigPath);
             if (int.TryParse(result.ToString(), out int timeout))
             {
                 return timeout;
             }
-            return 300; // 默认5分钟
+            return 120; // 默认2分钟
+        }
+
+        /// <summary>
+        /// 获取系统是否自动启动的设置
+        /// </summary>
+        /// <returns>true表示自动启动，false表示不自动启动</returns>
+        public static bool GetAutoStart()
+        {
+            StringBuilder result = new StringBuilder(255);
+            GetPrivateProfileString("System", "AutoStart", "true", result, 255, ConfigPath);
+            return result.ToString().ToLower() == "true";
+        }
+
+        /// <summary>
+        /// 获取系统是否保持屏幕常亮的设置
+        /// </summary>
+        /// <returns>true表示启用，false表示禁用</returns>
+        public static bool GetKeepScreenOn()
+        {
+            StringBuilder result = new StringBuilder(255);
+            GetPrivateProfileString("System", "KeepScreenOn", "true", result, 255, ConfigPath);
+            return result.ToString().ToLower() == "true";
         }
 
         /// <summary>
@@ -87,6 +169,69 @@ namespace NoSleep
         public static void SaveScreenSaverTimeout(int seconds)
         {
             WritePrivateProfileString("ScreenSaver", "Timeout", seconds.ToString(), ConfigPath);
+        }
+
+        /// <summary>
+        /// 获取屏保图片轮播间隔（秒）
+        /// </summary>
+        public static int GetSlideShowInterval()
+        {
+            StringBuilder result = new StringBuilder(255);
+            GetPrivateProfileString("ScreenSaver", "SlideShowInterval", "10", result, 255, ConfigPath);
+            if (int.TryParse(result.ToString(), out int interval))
+            {
+                return interval;
+            }
+            return 10; // 默认10秒
+        }
+
+        private static void SetAutoStart(bool enabled)
+        {
+            string startupPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Startup),
+                "NoSleep.lnk");
+
+            if (enabled)
+            {
+                try
+                {
+                    var shell = new IWshRuntimeLibrary.WshShell();
+                    var shortcut = (IWshRuntimeLibrary.IWshShortcut)shell.CreateShortcut(startupPath);
+                    shortcut.TargetPath = Application.ExecutablePath;
+                    shortcut.Save();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to create autostart shortcut: {ex.Message}");
+                }
+            }
+            else if (File.Exists(startupPath))
+            {
+                try
+                {
+                    File.Delete(startupPath);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to remove autostart shortcut: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取所有支持的图片文件路径
+        /// </summary>
+        public static string[] GetAllImagePaths()
+        {
+            string directory = AppDomain.CurrentDomain.BaseDirectory;
+            List<string> allImages = new List<string>();
+            
+            foreach (string extension in SupportedImageExtensions)
+            {
+                allImages.AddRange(Directory.GetFiles(directory, "*" + extension));
+            }
+            
+            return allImages.ToArray();
         }
     }
 } 

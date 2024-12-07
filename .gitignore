@@ -396,3 +396,14 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Visual Studio files
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# 不忽略 release 文件夹
+!release/
+!release/NoSleep.exe

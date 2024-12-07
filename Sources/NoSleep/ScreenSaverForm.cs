@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.IO;
 using NoSleep.Properties;
 
 namespace NoSleep
@@ -8,7 +10,9 @@ namespace NoSleep
     public class ScreenSaverForm : Form
     {
         private PictureBox pictureBox;
-        private Image screenSaverImage;
+        private List<Image> images = new List<Image>();
+        private int currentImageIndex = 0;
+        private Timer slideShowTimer;
         private Point lastMousePosition;
         private const int MOUSE_SENSITIVITY = 10;
         private bool isFirstMove = true;
@@ -16,22 +20,27 @@ namespace NoSleep
         private const int ACTIVATION_DELAY = 1000;
         private bool isClosing = false;
 
-        public ScreenSaverForm(string imagePath)
+        public ScreenSaverForm(string[] imagePaths)
         {
             try
             {
-                if (!string.IsNullOrEmpty(imagePath) && System.IO.File.Exists(imagePath))
+                // 加载所有图片
+                foreach (string path in imagePaths)
                 {
-                    screenSaverImage = Image.FromFile(imagePath);
+                    if (File.Exists(path))
+                    {
+                        images.Add(Image.FromFile(path));
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load image: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error loading images: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             this.formOpenTime = DateTime.Now;
             InitializeComponents();
+            InitializeSlideShow();
         }
 
         private void InitializeComponents()
@@ -49,9 +58,9 @@ namespace NoSleep
                 BackColor = Color.Black
             };
 
-            if (screenSaverImage != null)
+            if (images.Count > 0)
             {
-                pictureBox.Image = screenSaverImage;
+                pictureBox.Image = images[0];
             }
 
             this.Controls.Add(pictureBox);
@@ -65,6 +74,26 @@ namespace NoSleep
 
             this.Bounds = SystemInformation.VirtualScreen;
             Cursor.Hide();
+        }
+
+        private void InitializeSlideShow()
+        {
+            if (images.Count > 1)
+            {
+                slideShowTimer = new Timer();
+                slideShowTimer.Interval = ConfigManager.GetSlideShowInterval() * 1000; // 转换为毫秒
+                slideShowTimer.Tick += SlideShowTimer_Tick;
+                slideShowTimer.Start();
+            }
+        }
+
+        private void SlideShowTimer_Tick(object sender, EventArgs e)
+        {
+            if (images.Count > 1)
+            {
+                currentImageIndex = (currentImageIndex + 1) % images.Count;
+                pictureBox.Image = images[currentImageIndex];
+            }
         }
 
         protected override void OnLoad(EventArgs e)
@@ -137,9 +166,10 @@ namespace NoSleep
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             Cursor.Show();
-            if (screenSaverImage != null)
+            slideShowTimer?.Dispose();
+            foreach (var image in images)
             {
-                screenSaverImage.Dispose();
+                image?.Dispose();
             }
             base.OnFormClosing(e);
         }
@@ -148,9 +178,12 @@ namespace NoSleep
         {
             if (disposing)
             {
-                if (screenSaverImage != null)
+                if (images.Count > 0)
                 {
-                    screenSaverImage.Dispose();
+                    foreach (var image in images)
+                    {
+                        image?.Dispose();
+                    }
                 }
             }
             base.Dispose(disposing);
