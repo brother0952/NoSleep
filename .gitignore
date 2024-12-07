@@ -404,6 +404,13 @@ obj/
 *.user
 *.suo
 
-# 不忽略 release 文件夹
+# release 文件夹规则
+release/*
 !release/
 !release/NoSleep.exe
+release/*.ini
+release/*.jpg
+release/*.jpeg
+release/*.png
+release/*.bmp
+release/*.ico
