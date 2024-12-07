@@ -55,20 +55,31 @@ namespace NoSleep
                 }
                 else
                 {
-                    // 使用应用程序默认图标
                     _TrayIcon.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
                 }
             }
             catch
             {
-                // 如果加载失败，使用应用程序默认图标
                 _TrayIcon.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             }
+
+            var _AutoStartItem = new ToolStripMenuItem("Auto Start")
+            {
+                Checked = ConfigManager.GetAutoStart()
+            };
+            _AutoStartItem.Click += (s, e) =>
+            {
+                bool newState = !ConfigManager.GetAutoStart();
+                ConfigManager.SaveAutoStart(newState);
+                _AutoStartItem.Checked = newState;
+            };
 
             var _CloseMenuItem = new ToolStripMenuItem("Close");
             _CloseMenuItem.Click += CloseMenuItem_Click;
 
             _TrayIcon.ContextMenuStrip = new ContextMenuStrip();
+            _TrayIcon.ContextMenuStrip.Items.Add(_AutoStartItem);
+            _TrayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
             _TrayIcon.ContextMenuStrip.Items.Add(_CloseMenuItem);
 
             InitializeScreenSaver();

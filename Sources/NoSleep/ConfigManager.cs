@@ -233,5 +233,11 @@ namespace NoSleep
             
             return allImages.ToArray();
         }
+
+        public static void SaveAutoStart(bool enabled)
+        {
+            WritePrivateProfileString("System", "AutoStart", enabled.ToString().ToLower(), ConfigPath);
+            SetAutoStart(enabled);
+        }
     }
 } 
