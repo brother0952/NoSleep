@@ -12,7 +12,7 @@ namespace NoSleep.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.7.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.0.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -44,6 +44,66 @@ namespace NoSleep.Properties {
             }
             set {
                 this["UpgradeRequired"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int SleepTime {
+            get {
+                return ((int)(this["SleepTime"]));
+            }
+            set {
+                this["SleepTime"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AutoStartEnabled {
+            get {
+                return ((bool)(this["AutoStartEnabled"]));
+            }
+            set {
+                this["AutoStartEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ScreenSaverEnabled {
+            get {
+                return ((bool)(this["ScreenSaverEnabled"]));
+            }
+            set {
+                this["ScreenSaverEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("300")]
+        public int ScreenSaverTimeout {
+            get {
+                return ((int)(this["ScreenSaverTimeout"]));
+            }
+            set {
+                this["ScreenSaverTimeout"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ScreenSaverImagePath {
+            get {
+                return ((string)(this["ScreenSaverImagePath"]));
+            }
+            set {
+                this["ScreenSaverImagePath"] = value;
             }
         }
     }
