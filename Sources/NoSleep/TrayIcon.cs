@@ -149,7 +149,7 @@ namespace NoSleep
             menu.Items.Add(autoStartItem);
             menu.Items.Add(new ToolStripSeparator());
             
-            var closeItem = new ToolStripMenuItem("关闭");
+            var closeItem = new ToolStripMenuItem("退出程序");
             closeItem.Click += CloseMenuItem_Click;
             menu.Items.Add(closeItem);
 

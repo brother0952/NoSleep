@@ -66,14 +66,19 @@ namespace NoSleep
             this.Controls.Add(pictureBox);
 
             this.MouseMove += ScreenSaverForm_MouseMove;
+            this.KeyPress += ScreenSaverForm_KeyPress;
             this.KeyDown += ScreenSaverForm_KeyDown;
             this.MouseDown += (s, e) => CloseScreenSaver();
 
             pictureBox.MouseMove += ScreenSaverForm_MouseMove;
+            pictureBox.KeyPress += ScreenSaverForm_KeyPress;
+            pictureBox.KeyDown += ScreenSaverForm_KeyDown;
             pictureBox.MouseDown += (s, e) => CloseScreenSaver();
 
             this.Bounds = SystemInformation.VirtualScreen;
             Cursor.Hide();
+
+            this.KeyPreview = true;
         }
 
         private void InitializeSlideShow()
@@ -142,6 +147,15 @@ namespace NoSleep
             lastMousePosition = screenPoint;
         }
 
+        private void ScreenSaverForm_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (isClosing) return;
+            if ((DateTime.Now - formOpenTime).TotalMilliseconds < ACTIVATION_DELAY)
+                return;
+
+            CloseScreenSaver();
+        }
+
         private void ScreenSaverForm_KeyDown(object sender, KeyEventArgs e)
         {
             if (isClosing) return;
@@ -149,6 +163,7 @@ namespace NoSleep
                 return;
 
             CloseScreenSaver();
+            e.Handled = true;
         }
 
         private void CloseScreenSaver()
