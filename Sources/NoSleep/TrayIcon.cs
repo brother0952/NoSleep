@@ -45,7 +45,7 @@ namespace NoSleep
                 Text = AppName
             };
 
-            // 尝试加载图标，如果失败则使用默认图标
+            // 尝试加载图标
             string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "valeo.ico");
             try
             {
@@ -63,25 +63,97 @@ namespace NoSleep
                 _TrayIcon.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             }
 
-            var _AutoStartItem = new ToolStripMenuItem("Auto Start")
+            // 创建菜单项
+            var menu = new ContextMenuStrip();
+
+            // 超时时间设置
+            var timeoutMenu = new ToolStripMenuItem("超时时间");
+            var timeouts = new[] { 10, 30, 60, 180, 300, 600, 1800, 3600, 10800, 21600 };
+            var timeoutNames = new[] { "10秒", "30秒", "1分钟", "3分钟", "5分钟", "10分钟", "30分钟", "60分钟", "3小时", "6小时" };
+            
+            for (int i = 0; i < timeouts.Length; i++)
+            {
+                var item = new ToolStripMenuItem(timeoutNames[i]);
+                int timeout = timeouts[i];
+                item.Checked = timeout == ConfigManager.GetScreenSaverTimeout();
+                item.Click += (s, e) =>
+                {
+                    foreach (ToolStripMenuItem mi in timeoutMenu.DropDownItems)
+                        mi.Checked = false;
+                    ((ToolStripMenuItem)s).Checked = true;
+                    ConfigManager.SaveScreenSaverTimeout(timeout);
+                };
+                timeoutMenu.DropDownItems.Add(item);
+            }
+
+            // 超时行为设置
+            var timeoutActionMenu = new ToolStripMenuItem("超时后行为");
+
+            // 先声明两个菜单项变量
+            var keepScreenOnItem = new ToolStripMenuItem("保持屏幕常亮");
+            var showScreenSaverItem = new ToolStripMenuItem("显示屏保图片");
+
+            // 设置初始状态
+            keepScreenOnItem.Checked = ConfigManager.GetKeepScreenOn();
+            showScreenSaverItem.Checked = !ConfigManager.GetKeepScreenOn();
+
+            // 设置点击事件
+            keepScreenOnItem.Click += (s, e) =>
+            {
+                bool newState = !ConfigManager.GetKeepScreenOn();
+                ConfigManager.SaveKeepScreenOn(newState);
+                keepScreenOnItem.Checked = newState;
+                showScreenSaverItem.Checked = !newState;
+                
+                // 更新执行模式
+                if (newState)
+                    ExecutionMode |= EXECUTION_STATE.ES_DISPLAY_REQUIRED;
+                else
+                    ExecutionMode &= ~EXECUTION_STATE.ES_DISPLAY_REQUIRED;
+            };
+
+            showScreenSaverItem.Click += (s, e) =>
+            {
+                bool newState = !ConfigManager.GetKeepScreenOn();
+                ConfigManager.SaveKeepScreenOn(!newState);
+                showScreenSaverItem.Checked = newState;
+                keepScreenOnItem.Checked = !newState;
+                
+                // 更新执行模式
+                if (!newState)
+                    ExecutionMode |= EXECUTION_STATE.ES_DISPLAY_REQUIRED;
+                else
+                    ExecutionMode &= ~EXECUTION_STATE.ES_DISPLAY_REQUIRED;
+            };
+
+            // 添加到菜单
+            timeoutActionMenu.DropDownItems.Add(keepScreenOnItem);
+            timeoutActionMenu.DropDownItems.Add(showScreenSaverItem);
+
+            // 开机启动设置
+            var autoStartItem = new ToolStripMenuItem("开机启动")
             {
                 Checked = ConfigManager.GetAutoStart()
             };
-            _AutoStartItem.Click += (s, e) =>
+            autoStartItem.Click += (s, e) =>
             {
                 bool newState = !ConfigManager.GetAutoStart();
                 ConfigManager.SaveAutoStart(newState);
-                _AutoStartItem.Checked = newState;
+                autoStartItem.Checked = newState;
             };
 
-            var _CloseMenuItem = new ToolStripMenuItem("Close");
-            _CloseMenuItem.Click += CloseMenuItem_Click;
+            // 添加所有菜单项
+            menu.Items.Add(timeoutMenu);
+            menu.Items.Add(timeoutActionMenu);
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(autoStartItem);
+            menu.Items.Add(new ToolStripSeparator());
+            
+            var closeItem = new ToolStripMenuItem("关闭");
+            closeItem.Click += CloseMenuItem_Click;
+            menu.Items.Add(closeItem);
 
-            _TrayIcon.ContextMenuStrip = new ContextMenuStrip();
-            _TrayIcon.ContextMenuStrip.Items.Add(_AutoStartItem);
-            _TrayIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
-            _TrayIcon.ContextMenuStrip.Items.Add(_CloseMenuItem);
-
+            _TrayIcon.ContextMenuStrip = menu;
             InitializeScreenSaver();
         }
 

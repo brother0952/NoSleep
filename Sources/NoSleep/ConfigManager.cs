@@ -239,5 +239,10 @@ namespace NoSleep
             WritePrivateProfileString("System", "AutoStart", enabled.ToString().ToLower(), ConfigPath);
             SetAutoStart(enabled);
         }
+
+        public static void SaveKeepScreenOn(bool enabled)
+        {
+            WritePrivateProfileString("System", "KeepScreenOn", enabled.ToString().ToLower(), ConfigPath);
+        }
     }
 } 
