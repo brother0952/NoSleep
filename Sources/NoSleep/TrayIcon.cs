@@ -70,8 +70,8 @@ namespace NoSleep
 
             // 超时时间设置
             var timeoutMenu = new ToolStripMenuItem("超时时间");
-            var timeouts = new[] { 10, 30, 60, 180, 300, 600, 1800, 3600, 10800, 21600 };
-            var timeoutNames = new[] { "10秒", "30秒", "1分钟", "3分钟", "5分钟", "10分钟", "30分钟", "60分钟", "3小时", "6小时" };
+            var timeouts = new[] { 10, 180, 600, 1800, 3600, 10800, -1 };
+            var timeoutNames = new[] { "10秒", "3分钟", "10分钟", "30分钟", "60分钟", "3小时", "永不" };
             
             // 获取当前超时时间
             int currentTimeout = ConfigManager.GetScreenSaverTimeout();
@@ -88,6 +88,17 @@ namespace NoSleep
                         mi.Checked = false;
                     ((ToolStripMenuItem)s).Checked = true;
                     ConfigManager.SaveScreenSaverTimeout(timeout);
+
+                    // 如果选择了"永不"，自动切换到"保持屏幕常亮"模式
+                    if (timeout == -1)
+                    {
+                        keepScreenOnItem.Checked = true;
+                        showScreenSaverItem.Checked = false;
+                        ConfigManager.SaveKeepScreenOn(true);
+                        ConfigManager.SaveScreenSaverEnabled(false);
+                        _screenSaverTimer?.Stop();
+                        UpdateExecutionState();
+                    }
                 };
                 timeoutMenu.DropDownItems.Add(item);
             }
@@ -183,7 +194,8 @@ namespace NoSleep
             Debug.WriteLine($"ScreenSaver Timer Tick - Enabled: {ConfigManager.GetScreenSaverEnabled()}, Form: {_screenSaverForm?.IsDisposed}");
             
             if (!ConfigManager.GetScreenSaverEnabled() || 
-                (_screenSaverForm != null && !_screenSaverForm.IsDisposed))
+                (_screenSaverForm != null && !_screenSaverForm.IsDisposed) ||
+                ConfigManager.GetScreenSaverTimeout() == -1)
                 return;
 
             uint idleTime = IdleTimeDetector.GetIdleTime();
