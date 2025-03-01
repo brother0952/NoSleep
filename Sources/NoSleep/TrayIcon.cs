@@ -18,6 +18,8 @@ namespace NoSleep
         private readonly Timer _RefreshTimer;
         private Timer _screenSaverTimer;
         private ScreenSaverForm _screenSaverForm;
+        private ToolStripMenuItem keepScreenOnItem;
+        private ToolStripMenuItem showScreenSaverItem;
 
         public TrayIcon()
         {
@@ -89,42 +91,17 @@ namespace NoSleep
             // 超时行为设置
             var timeoutActionMenu = new ToolStripMenuItem("超时后行为");
 
-            // 先声明两个菜单项变量
-            var keepScreenOnItem = new ToolStripMenuItem("保持屏幕常亮");
-            var showScreenSaverItem = new ToolStripMenuItem("显示屏保图片");
+            // 初始化菜单项
+            keepScreenOnItem = new ToolStripMenuItem("保持屏幕常亮");
+            showScreenSaverItem = new ToolStripMenuItem("显示屏保图片");
 
             // 设置初始状态
             keepScreenOnItem.Checked = ConfigManager.GetKeepScreenOn();
             showScreenSaverItem.Checked = !ConfigManager.GetKeepScreenOn();
 
             // 设置点击事件
-            keepScreenOnItem.Click += (s, e) =>
-            {
-                bool newState = !ConfigManager.GetKeepScreenOn();
-                ConfigManager.SaveKeepScreenOn(newState);
-                keepScreenOnItem.Checked = newState;
-                showScreenSaverItem.Checked = !newState;
-                
-                // 更新执行模式
-                if (newState)
-                    ExecutionMode |= EXECUTION_STATE.ES_DISPLAY_REQUIRED;
-                else
-                    ExecutionMode &= ~EXECUTION_STATE.ES_DISPLAY_REQUIRED;
-            };
-
-            showScreenSaverItem.Click += (s, e) =>
-            {
-                bool newState = !ConfigManager.GetKeepScreenOn();
-                ConfigManager.SaveKeepScreenOn(!newState);
-                showScreenSaverItem.Checked = newState;
-                keepScreenOnItem.Checked = !newState;
-                
-                // 更新执行模式
-                if (!newState)
-                    ExecutionMode |= EXECUTION_STATE.ES_DISPLAY_REQUIRED;
-                else
-                    ExecutionMode &= ~EXECUTION_STATE.ES_DISPLAY_REQUIRED;
-            };
+            keepScreenOnItem.Click += KeepScreenOnItem_Click;
+            showScreenSaverItem.Click += ShowScreenSaverItem_Click;
 
             // 添加到菜单
             timeoutActionMenu.DropDownItems.Add(keepScreenOnItem);
@@ -242,6 +219,52 @@ namespace NoSleep
                     _screenSaverForm = null;
                 }
             }
+        }
+
+        private void KeepScreenOnItem_Click(object sender, EventArgs e)
+        {
+            // 如果当前已经是激活状态，直接返回
+            if (keepScreenOnItem.Checked)
+                return;
+
+            // 设置当前菜单项为选中状态，并取消另一个菜单项的选中状态
+            keepScreenOnItem.Checked = true;
+            showScreenSaverItem.Checked = false;
+            
+            // 更新配置
+            ConfigManager.SaveKeepScreenOn(true);
+            ConfigManager.SaveScreenSaverEnabled(false);
+
+            // 更新系统状态
+            UpdateExecutionState();
+        }
+
+        private void ShowScreenSaverItem_Click(object sender, EventArgs e)
+        {
+            // 如果当前已经是激活状态，直接返回
+            if (showScreenSaverItem.Checked)
+                return;
+
+            // 设置当前菜单项为选中状态，并取消另一个菜单项的选中状态
+            showScreenSaverItem.Checked = true;
+            keepScreenOnItem.Checked = false;
+
+            // 更新配置
+            ConfigManager.SaveScreenSaverEnabled(true);
+            ConfigManager.SaveKeepScreenOn(false);
+
+            // 更新系统状态
+            UpdateExecutionState();
+        }
+
+        private void UpdateExecutionState()
+        {
+            ExecutionMode = EXECUTION_STATE.ES_CONTINUOUS | EXECUTION_STATE.ES_SYSTEM_REQUIRED | EXECUTION_STATE.ES_AWAYMODE_REQUIRED;
+            if (ConfigManager.GetKeepScreenOn())
+            {
+                ExecutionMode |= EXECUTION_STATE.ES_DISPLAY_REQUIRED;
+            }
+            WinU.SetThreadExecutionState(ExecutionMode);
         }
 
         protected override void Dispose(bool disposing)
