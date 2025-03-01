@@ -48,7 +48,7 @@ namespace NoSleep
 
             // 创建或更新配置
             WritePrivateProfileString("ScreenSaver", "Enabled", "true", ConfigPath);
-            WritePrivateProfileString("ScreenSaver", "Timeout", "120", ConfigPath);
+            WritePrivateProfileString("ScreenSaver", "Timeout", "180", ConfigPath);
             WritePrivateProfileString("ScreenSaver", "SlideShowInterval", "10", ConfigPath);
             WritePrivateProfileString("System", "AutoStart", autoStart.ToString().ToLower(), ConfigPath);
             WritePrivateProfileString("System", "KeepScreenOn", keepScreenOn.ToString().ToLower(), ConfigPath);

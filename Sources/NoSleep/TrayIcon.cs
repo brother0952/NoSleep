@@ -73,11 +73,15 @@ namespace NoSleep
             var timeouts = new[] { 10, 30, 60, 180, 300, 600, 1800, 3600, 10800, 21600 };
             var timeoutNames = new[] { "10秒", "30秒", "1分钟", "3分钟", "5分钟", "10分钟", "30分钟", "60分钟", "3小时", "6小时" };
             
+            // 获取当前超时时间
+            int currentTimeout = ConfigManager.GetScreenSaverTimeout();
+            
             for (int i = 0; i < timeouts.Length; i++)
             {
                 var item = new ToolStripMenuItem(timeoutNames[i]);
                 int timeout = timeouts[i];
-                item.Checked = timeout == ConfigManager.GetScreenSaverTimeout();
+                // 如果当前值等于配置的值，或者是首次运行且当前项是3分钟（180秒），则勾选
+                item.Checked = timeout == currentTimeout || (currentTimeout == 0 && timeout == 180);
                 item.Click += (s, e) =>
                 {
                     foreach (ToolStripMenuItem mi in timeoutMenu.DropDownItems)
@@ -166,6 +170,7 @@ namespace NoSleep
             _screenSaverTimer.Interval = 1000;
             _screenSaverTimer.Tick += ScreenSaverTimer_Tick;
             
+            // 根据配置决定是否启动计时器
             if (ConfigManager.GetScreenSaverEnabled())
             {
                 _screenSaverTimer.Start();
@@ -174,12 +179,18 @@ namespace NoSleep
 
         private void ScreenSaverTimer_Tick(object sender, EventArgs e)
         {
+            // 添加日志以便调试
+            Debug.WriteLine($"ScreenSaver Timer Tick - Enabled: {ConfigManager.GetScreenSaverEnabled()}, Form: {_screenSaverForm?.IsDisposed}");
+            
             if (!ConfigManager.GetScreenSaverEnabled() || 
                 (_screenSaverForm != null && !_screenSaverForm.IsDisposed))
                 return;
 
             uint idleTime = IdleTimeDetector.GetIdleTime();
-            if (idleTime / 1000.0 > ConfigManager.GetScreenSaverTimeout())
+            double idleSeconds = idleTime / 1000.0;
+            Debug.WriteLine($"Idle Time: {idleSeconds}s, Timeout: {ConfigManager.GetScreenSaverTimeout()}s");
+            
+            if (idleSeconds > ConfigManager.GetScreenSaverTimeout())
             {
                 ShowScreenSaver();
             }
@@ -191,33 +202,59 @@ namespace NoSleep
             {
                 try
                 {
-                    System.Threading.Thread thread = new System.Threading.Thread(() =>
+                    // 确保在主UI线程中创建和显示窗体
+                    if (Application.OpenForms.Count > 0)
                     {
-                        try
+                        Application.OpenForms[0].Invoke((MethodInvoker)delegate
                         {
-                            _screenSaverForm = new ScreenSaverForm(ConfigManager.GetAllImagePaths());
-                            _screenSaverForm.FormClosed += (s, e) => 
+                            CreateAndShowScreenSaver();
+                        });
+                    }
+                    else
+                    {
+                        System.Threading.Thread thread = new System.Threading.Thread(() =>
+                        {
+                            try
                             {
-                                _screenSaverForm = null;
-                            };
-
-                            Application.Run(_screenSaverForm);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Error showing screensaver: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            _screenSaverForm = null;
-                        }
-                    });
-
-                    thread.SetApartmentState(System.Threading.ApartmentState.STA);
-                    thread.Start();
+                                CreateAndShowScreenSaver();
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Error in screensaver thread: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        });
+                        thread.SetApartmentState(System.Threading.ApartmentState.STA);
+                        thread.Start();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error creating screensaver thread: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Error creating screensaver: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     _screenSaverForm = null;
                 }
+            }
+        }
+
+        private void CreateAndShowScreenSaver()
+        {
+            try
+            {
+                var imagePaths = ConfigManager.GetAllImagePaths();
+                // 不管是否有图片，都创建屏保窗体
+                _screenSaverForm = new ScreenSaverForm(imagePaths ?? new string[0]);
+                _screenSaverForm.FormClosed += (s, e) =>
+                {
+                    _screenSaverForm?.Dispose();
+                    _screenSaverForm = null;
+                };
+
+                Application.Run(_screenSaverForm);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error showing screensaver: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _screenSaverForm?.Dispose();
+                _screenSaverForm = null;
             }
         }
 
@@ -234,6 +271,9 @@ namespace NoSleep
             // 更新配置
             ConfigManager.SaveKeepScreenOn(true);
             ConfigManager.SaveScreenSaverEnabled(false);
+
+            // 停止屏保计时器
+            _screenSaverTimer?.Stop();
 
             // 更新系统状态
             UpdateExecutionState();
@@ -252,6 +292,9 @@ namespace NoSleep
             // 更新配置
             ConfigManager.SaveScreenSaverEnabled(true);
             ConfigManager.SaveKeepScreenOn(false);
+
+            // 启动屏保计时器
+            _screenSaverTimer?.Start();
 
             // 更新系统状态
             UpdateExecutionState();
