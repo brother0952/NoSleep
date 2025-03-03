@@ -123,12 +123,12 @@ namespace NoSleep
         public static int GetScreenSaverTimeout()
         {
             StringBuilder result = new StringBuilder(255);
-            GetPrivateProfileString("ScreenSaver", "Timeout", "120", result, 255, ConfigPath);
+            GetPrivateProfileString("ScreenSaver", "Timeout", "180", result, 255, ConfigPath);
             if (int.TryParse(result.ToString(), out int timeout))
             {
                 return timeout;
             }
-            return 120; // 默认2分钟
+            return 180; // 默认3分钟
         }
 
         /// <summary>
